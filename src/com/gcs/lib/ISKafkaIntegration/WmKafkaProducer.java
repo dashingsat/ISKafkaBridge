@@ -1,7 +1,6 @@
 package com.gcs.lib.ISKafkaIntegration;
 
 import com.wm.data.IData;
-import com.wm.util.template.IfVarElseToken;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 
@@ -75,7 +74,10 @@ public class WmKafkaProducer {
          this.bufferMem = bufferMem ;
 
         if(lingerInMs == null)
-            lingerInMs = 0 ;
+            lingerInMs = 1 ;
+        else
+            this.lingerInMs = lingerInMs ;
+
 
 
 
@@ -100,6 +102,10 @@ public class WmKafkaProducer {
 
             props.put("linger.ms" ,this.getLingerInMs()) ;
 
+            props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer") ;
+
+            props.put("value.serializer", "com.gcs.lib.ISKafkaIntegration.IDataSerializer") ;
+
             producer = new KafkaProducer<String , IData>(props) ;
 
 
@@ -112,6 +118,10 @@ public class WmKafkaProducer {
 
         return false ;
     }
+
+     public void send(String topicName , String ds){
+
+     }
 
 
 }
