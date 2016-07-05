@@ -1,8 +1,13 @@
 package com.gcs.lib.ISKafkaIntegration;
 
+import com.softwareag.util.IDataMap;
+import com.wm.app.b2b.server.InvokeState;
+import com.wm.app.b2b.server.Service;
+import com.wm.app.b2b.server.Session;
 import com.wm.data.IData;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
+import com.wm.data.IDataFactory;
+import com.wm.lang.ns.NSName;
+import org.apache.kafka.clients.producer.*;
 
 import java.util.Properties;
 
@@ -110,6 +115,7 @@ public class WmKafkaProducer {
 
 
 
+
         }
         catch (Exception e){
 
@@ -119,9 +125,68 @@ public class WmKafkaProducer {
         return false ;
     }
 
-     public void send(String topicName , String ds){
+     public Boolean send(String topicName , String keyName , IData value , String callbackService ){
 
+         Session session = Service.getSession() ;
+
+
+         if(callbackService != null && !callbackService.equals(""))
+         {
+             producer.send(new ProducerRecord<String,IData>(topicName , keyName , value) , (recordMetadata, e) -> {
+                 if(e != null)
+                     e.printStackTrace();
+                 else{
+
+                      invokeService(recordMetadata , session , callbackService) ;
+
+
+
+                 }
+
+
+
+
+             });
+
+         }
+
+         else{
+             producer.send(new ProducerRecord<String,IData>(topicName , keyName , value)) ;
+         }
+
+
+         return false ;
      }
+
+    private void invokeService(RecordMetadata recordMetadata, Session session , String callbackService) {
+
+        IData input =  IDataFactory.create() ;
+
+        IDataMap inputmap = new IDataMap(input) ;
+
+        inputmap.put( "topic" , recordMetadata.topic()) ;
+
+        inputmap.put("partition"  , recordMetadata.partition()) ;
+
+        inputmap.put("offset" , recordMetadata.offset()) ;
+
+        new InvokeState();
+
+        InvokeState.setCurrentSession(session);
+        InvokeState.setCurrentUser(session.getUser());
+
+
+        try {
+              Service.doInvoke( NSName.create(callbackService) , input);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public void close(){
+        producer.close();
+    }
 
 
 }
