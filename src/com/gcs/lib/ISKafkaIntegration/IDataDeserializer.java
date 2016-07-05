@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * Created by sdas on 5/31/2016.
  */
-public class IDataDesrializer implements Deserializer<IData>{
+public class IDataDeserializer implements Deserializer<IData>{
 
     ByteArrayInputStream bis = null ;
     ObjectInput in = null;
