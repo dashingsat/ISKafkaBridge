@@ -139,12 +139,7 @@ public class WmKafkaProducer {
 
                       invokeService(recordMetadata , session , callbackService) ;
 
-
-
                  }
-
-
-
 
              });
 
