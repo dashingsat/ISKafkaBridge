@@ -69,7 +69,7 @@ public class WmKafkaProducer {
         this.retries = retries ;
 
         if(batchSize == null)
-            batchSize = 16384 ;
+            this.batchSize = 16384 ;
         else
         this.batchSize = batchSize ;
 
@@ -79,11 +79,11 @@ public class WmKafkaProducer {
          this.bufferMem = bufferMem ;
 
         if(lingerInMs == null)
-            lingerInMs = 1 ;
+            this.lingerInMs = 1 ;
         else
             this.lingerInMs = lingerInMs ;
 
-
+       createProducer() ;
 
 
 
@@ -92,6 +92,7 @@ public class WmKafkaProducer {
     public Boolean createProducer () {
 
         try{
+            System.out.println("creating producer config");
 
             Properties props = new Properties();
 
@@ -106,14 +107,19 @@ public class WmKafkaProducer {
             props.put("buffer.memory" , this.getBufferMem());
 
             props.put("linger.ms" ,this.getLingerInMs()) ;
+            System.out.println("got props");
 
             props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer") ;
 
             props.put("value.serializer", "com.gcs.lib.ISKafkaIntegration.IDataSerializer") ;
 
+            System.out.println("creating producer");
+
             producer = new KafkaProducer<String , IData>(props) ;
 
+            System.out.println("producer created");
 
+            return true ;
 
 
         }
@@ -132,25 +138,43 @@ public class WmKafkaProducer {
 
          if(callbackService != null && !callbackService.equals(""))
          {
-             producer.send(new ProducerRecord<String,IData>(topicName , keyName , value) , (recordMetadata, e) -> {
-                 if(e != null)
-                     e.printStackTrace();
-                 else{
+             System.out.println("in the first block");
+             try{
+                 producer.send(new ProducerRecord<String,IData>(topicName , keyName , value) , (recordMetadata, e) -> {
+                     if(e != null)
+                         e.printStackTrace();
+                     else{
 
-                      invokeService(recordMetadata , session , callbackService) ;
+                         invokeService(recordMetadata , session , callbackService) ;
 
-                 }
+                     }
 
-             });
+                 });
+             }catch(Exception e){
+                 System.out.println(e.toString());
+                 return false ;
+             }
+
+
+             return true ;
 
          }
 
          else{
-             producer.send(new ProducerRecord<String,IData>(topicName , keyName , value)) ;
+             try{
+                 System.out.println("in the second block");
+                 producer.send(new ProducerRecord<>(topicName, keyName, value)) ;
+                 System.out.println("sent");
+                 return true ;
+             }catch(Exception e){
+                 System.out.println(e.toString());
+                 return false ;
+             }
+
          }
 
 
-         return false ;
+
      }
 
     private void invokeService(RecordMetadata recordMetadata, Session session , String callbackService) {
@@ -183,5 +207,10 @@ public class WmKafkaProducer {
         producer.close();
     }
 
+    public static void main(String[] args) {
+        String bs = "localhost:9092,localhost:9093,localhost:9094" ;
+        String acks = "all" ;
+        WmKafkaProducer prod = new WmKafkaProducer(bs ,0 ,"all" , null , null , null);
+    }
 
 }

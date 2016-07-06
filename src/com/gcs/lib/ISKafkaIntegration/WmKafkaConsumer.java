@@ -21,61 +21,69 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class WmKafkaConsumer {
 
-    public KafkaConsumer<String,IData> consumer ;
+        public KafkaConsumer<String,IData> consumer ;
 
-    private AtomicBoolean closed  ;
-    static java.util.concurrent.ConcurrentMap<String,Boolean> closedMap ;
-    static java.util.concurrent.ConcurrentMap<String,KafkaConsumer> nameConsumerMap ;
 
-    public interface Action{
+    static java.util.concurrent.ConcurrentMap<String,Boolean> closedMap = new java.util.concurrent.ConcurrentHashMap<>() ;
+    static java.util.concurrent.ConcurrentMap<String,KafkaConsumer> nameConsumerMap = new java.util.concurrent.ConcurrentHashMap<>() ;
 
-        public void invoke(String serviceName , ConsumerRecord<String, IData> record , Session session ) ;
-    }
 
-    public void createConsumer(String topicName  , Action action , String bootstrapServers , String clientGroupId , String enableAutoCommit , String autoCommitIntervalInMs ,
-                               String sessionTimeOut , String serviceName , String name
+
+    public void createConsumer(String topicName  , String bootstrapServers , String clientGroupId , String enableAutoCommit , Integer autoCommitIntervalInMs ,
+                               Integer sessionTimeOut , String serviceName , String name
 
     ){
 
+         if(enableAutoCommit == null || enableAutoCommit.equals(""))
+             enableAutoCommit = "true" ;
+
+         if(autoCommitIntervalInMs == null)
+             autoCommitIntervalInMs = 1000 ;
+
+        if(sessionTimeOut == null)
+            sessionTimeOut = 30000 ;
+
         Properties props = new Properties();
+        System.out.println("configure property");
         props.put("bootstrap.servers", bootstrapServers);
         props.put("group.id", clientGroupId);
         props.put("enable.auto.commit", enableAutoCommit);
         props.put("auto.commit.interval.ms", autoCommitIntervalInMs);
         props.put("session.timeout.ms", sessionTimeOut);
         props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        props.put("value.deserializer", "com.gcs.lib.ISKafkaIntegration.IDataSerializer");
+        props.put("value.deserializer", "com.gcs.lib.ISKafkaIntegration.IDataDeserializer");
+        System.out.println("property configured");
 
         Session session = Service.getSession();
 
-        consumer = new KafkaConsumer<String,IData>(props);
+        consumer = new KafkaConsumer<>(props);
         consumer.subscribe(Collections.singletonList(topicName));
+
+        System.out.println("subscription enabled");
 
         ExecutorService executor = Executors.newFixedThreadPool(1) ;
         ExecutorService servExecutor = Executors.newFixedThreadPool(3) ;
 
-
-       closed.set(false) ;
-
         closedMap.put(name,false) ;
         nameConsumerMap.put(name, consumer) ;
 
-       FutureTask<Void>  invokeTask  =  new FutureTask<Void>(() -> {
+        String finalEnableAutoCommit = enableAutoCommit;
+        FutureTask<Void>  invokeTask  =  new FutureTask<Void>(() -> {
 
-
-        while(closedMap.get(name)){
+        while(!closedMap.get(name)){
 
 
                ConsumerRecords<String,IData> records = consumer.poll(100);
 
                for(ConsumerRecord<String,IData> record : records){
+                   System.out.println("retrieved record :: service invoke about to happen");
 
                    invokeService( record ,serviceName , session);
 
-
+                   System.out.println("service invoked");
                }
 
-           if(enableAutoCommit.equalsIgnoreCase("false")) consumer.commitSync();
+           if(finalEnableAutoCommit.equalsIgnoreCase("false")) consumer.commitSync();
 
         }
 
@@ -83,6 +91,8 @@ public class WmKafkaConsumer {
        });
 
         executor.execute(invokeTask);
+
+        executor.shutdown();
     }
 
     private void invokeService(ConsumerRecord<String, IData> record, String serviceName, Session session) {
@@ -121,6 +131,11 @@ public class WmKafkaConsumer {
 
     }
 
+
+    public static void main(String[] args) {
+        WmKafkaConsumer cs = new WmKafkaConsumer();
+         cs.createConsumer("wmtopic","localhost:9092,localhost:9093,localhost:9094","cg","false",null,null,"abc","mysubs");
+    }
 
 
 }
