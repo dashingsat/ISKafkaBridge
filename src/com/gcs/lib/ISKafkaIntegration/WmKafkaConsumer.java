@@ -6,7 +6,6 @@ import com.wm.app.b2b.server.Service;
 import com.wm.app.b2b.server.Session;
 import com.wm.data.IData;
 import com.wm.data.IDataFactory;
-import com.wm.data.IDataTableCursor;
 import com.wm.lang.ns.NSName;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
