@@ -6,6 +6,7 @@ import com.wm.app.b2b.server.Service;
 import com.wm.app.b2b.server.Session;
 import com.wm.data.IData;
 import com.wm.data.IDataFactory;
+import com.wm.data.IDataUtil;
 import com.wm.lang.ns.NSName;
 import org.apache.kafka.clients.producer.*;
 
@@ -196,7 +197,7 @@ public class WmKafkaProducer {
 
 
         try {
-              Service.doInvoke( NSName.create(callbackService) , input);
+              Service.doInvoke( NSName.create(callbackService) , IDataUtil.deepClone(input));
         } catch (Exception e) {
             e.printStackTrace();
         }

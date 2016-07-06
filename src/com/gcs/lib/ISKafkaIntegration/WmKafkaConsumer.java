@@ -6,6 +6,7 @@ import com.wm.app.b2b.server.Service;
 import com.wm.app.b2b.server.Session;
 import com.wm.data.IData;
 import com.wm.data.IDataFactory;
+import com.wm.data.IDataUtil;
 import com.wm.lang.ns.NSName;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -35,7 +36,7 @@ public class WmKafkaConsumer {
     ){
 
          if(enableAutoCommit == null || enableAutoCommit.equals(""))
-             enableAutoCommit = "true" ;
+             enableAutoCommit = "false" ;
 
          if(autoCommitIntervalInMs == null)
              autoCommitIntervalInMs = 1000 ;
@@ -109,7 +110,7 @@ public class WmKafkaConsumer {
 
 
         try {
-            Service.doInvoke( NSName.create(serviceName) , input);
+            Service.doInvoke( NSName.create(serviceName) , IDataUtil.deepClone(input));
         } catch (Exception e) {
             e.printStackTrace();
         }
